@@ -92,7 +92,7 @@ jobs:
       - name: Prepare capnproto files
         run: |
           go install capnproto.org/go/capnp/v3/capnpc-go@main
-          git clone https://github.com/capnproto/go-capnp /go-capnp
+          git clone https://github.com/capnproto/go-capnp ./go-capnp
           capnp compile -I/go-capnp/std --verbose -ogo ./**/*.capnp
       - run: go test -json -v ./... 2>&1 | gotestfmt -hide all
         env:
@@ -129,7 +129,7 @@ jobs:
         run: |
           sudo apt-get install capnproto
           go install capnproto.org/go/capnp/v3/capnpc-go@main
-          git clone https://github.com/capnproto/go-capnp /go-capnp
+          git clone https://github.com/capnproto/go-capnp ./go-capnp
           capnp compile -I/go-capnp/std --verbose -ogo ./**/*.capnp
       - name: Build upgrade-tests
         run: go build ./cmd/dendrite-upgrade-tests
@@ -164,7 +164,7 @@ jobs:
         run: |
           sudo apt-get install capnproto
           go install capnproto.org/go/capnp/v3/capnpc-go@main
-          git clone https://github.com/capnproto/go-capnp /go-capnp
+          git clone https://github.com/capnproto/go-capnp ./go-capnp
           capnp compile -I/go-capnp/std --verbose -ogo ./**/*.capnp
       - name: Build upgrade-tests
         run: go build ./cmd/dendrite-upgrade-tests
@@ -209,7 +209,7 @@ jobs:
         run: |
           sudo apt-get install capnproto
           go install capnproto.org/go/capnp/v3/capnpc-go@main
-          git clone https://github.com/capnproto/go-capnp /go-capnp
+          git clone https://github.com/capnproto/go-capnp ./go-capnp
           capnp compile -I/go-capnp/std --verbose -ogo ./**/*.capnp
         working-directory: /src
       - name: Run Sytest
