@@ -4,7 +4,7 @@ using Types = import "./types/types.capnp";
 @0xee8fadeb6a9300eb;
 
 $Go.package("v1");
-$Go.import("github.com/MTRNord/matrix_protobuf_fed/proto/federation/v1");
+$Go.import("github.com/neilalexander/harmony/internal/gomatrixserverlib/capnproto/federation/v1");
 
 annotation methodUUID @0xe55590d1a37e8043 (method) :UInt64;
 

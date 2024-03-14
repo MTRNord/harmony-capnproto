@@ -3,7 +3,7 @@ using Go = import "/go.capnp";
 @0xb8a1e7de8a3a89ec;
 
 $Go.package("types");
-$Go.import("github.com/MTRNord/matrix_protobuf_fed/proto/federation/v1/types");
+$Go.import("github.com/neilalexander/harmony/internal/gomatrixserverlib/capnproto/federation/v1/types");
 
 # Broken right now. Hence inlined below
 # using Json = import "/capnp/compat/json.capnp";

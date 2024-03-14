@@ -10,7 +10,7 @@ import (
 	server "capnproto.org/go/capnp/v3/server"
 	stream "capnproto.org/go/capnp/v3/std/capnp/stream"
 	context "context"
-	types "github.com/MTRNord/matrix_protobuf_fed/proto/federation/v1/types"
+	types "github.com/neilalexander/harmony/internal/gomatrixserverlib/capnproto/federation/v1/types"
 )
 
 const MethodUUID_ = uint64(0xe55590d1a37e8043)
