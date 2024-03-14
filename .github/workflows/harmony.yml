@@ -3,7 +3,7 @@ name: Harmony
 on:
   push:
     branches:
-      - main
+      - '*'
     paths:
       - "**.go" # only execute on changes to go files
       - "go.sum" # or dependency updates
