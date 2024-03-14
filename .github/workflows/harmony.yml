@@ -188,7 +188,6 @@ jobs:
           key: ${{ runner.os }}-go-sytest-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-sytest-
-        working-directory: /src
       - name: Run Sytest
         run: /bootstrap.sh dendrite
         working-directory: /src
