@@ -1,3 +1,5 @@
+capnproto.org/go/capnp/v3 v3.0.0-alpha.30.0.20240213214103-0d218d2660ff h1:W2JuZk1N+B3ln0OsQsrd630WXfZiwJEq3L79IuB6rBY=
+capnproto.org/go/capnp/v3 v3.0.0-alpha.30.0.20240213214103-0d218d2660ff/go.mod h1:GGCgwnINIqHrOaK2oUjMDnAsLNq68JI/X9Kcg1o/LSA=
 github.com/Arceliar/phony v0.0.0-20220903101357-530938a4b13d h1:UK9fsWbWqwIQkMCz1CP+v5pGbsGoWAw6g4AyvMpm1EM=
 github.com/Arceliar/phony v0.0.0-20220903101357-530938a4b13d/go.mod h1:BCnxhRf47C/dy/e/D2pmB8NkB3dQVIrkD98b220rx5Q=
 github.com/DATA-DOG/go-sqlmock v1.5.2 h1:OcvFkGmslmlZibjAjaHm3L//6LiuBgolP7OputlJIzU=
@@ -103,8 +105,6 @@ github.com/matrix-org/dugong v0.0.0-20210921133753-66e6b1c67e2e h1:DP5RC0Z3XdyBE
 github.com/matrix-org/dugong v0.0.0-20210921133753-66e6b1c67e2e/go.mod h1:NgPCr+UavRGH6n5jmdX8DuqFZ4JiCWIJoZiuhTRLSUg=
 github.com/matrix-org/gomatrix v0.0.0-20220926102614-ceba4d9f7530 h1:kHKxCOLcHH8r4Fzarl4+Y3K5hjothkVW5z7T1dUM11U=
 github.com/matrix-org/gomatrix v0.0.0-20220926102614-ceba4d9f7530/go.mod h1:/gBX06Kw0exX1HrwmoBibFA98yBk/jxKpGVeyQbff+s=
-github.com/neilalexander/harmony/internal/gomatrixserverlib v0.0.0-20240116122202-14ee7615d604 h1:bUQyUrwPtWj6YyXJ+npYmPIik7/ErKctxE2Nyn6SPZ8=
-github.com/neilalexander/harmony/internal/gomatrixserverlib v0.0.0-20240116122202-14ee7615d604/go.mod h1:HZGsVJ3bUE+DkZtufkH9H0mlsvbhEGK5CpX0Zlavylg=
 github.com/matrix-org/util v0.0.0-20221111132719-399730281e66 h1:6z4KxomXSIGWqhHcfzExgkH3Z3UkIXry4ibJS4Aqz2Y=
 github.com/matrix-org/util v0.0.0-20221111132719-399730281e66/go.mod h1:iBI1foelCqA09JJgPV0FYz4qA5dUXYOxMi57FxKBdd4=
 github.com/mattn/go-colorable v0.1.13 h1:fFA4WZxdEF4tXPZVKMLwD8oUnCTTo08duU7wxecdEvA=
@@ -139,6 +139,8 @@ github.com/nats-io/nuid v1.0.1 h1:5iA8DT8V7q8WK2EScv2padNa/rTESc1KdnPw4TC2paw=
 github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OSON2c=
 github.com/nbio/st v0.0.0-20140626010706-e9e8d9816f32 h1:W6apQkHrMkS0Muv8G/TipAy/FJl/rCYT0+EuS8+Z0z4=
 github.com/nbio/st v0.0.0-20140626010706-e9e8d9816f32/go.mod h1:9wM+0iRr9ahx58uYLpLIr5fm8diHn0JbqRycJi6w0Ms=
+github.com/neilalexander/harmony/internal/gomatrixserverlib v0.0.0-20240116122202-14ee7615d604 h1:bUQyUrwPtWj6YyXJ+npYmPIik7/ErKctxE2Nyn6SPZ8=
+github.com/neilalexander/harmony/internal/gomatrixserverlib v0.0.0-20240116122202-14ee7615d604/go.mod h1:HZGsVJ3bUE+DkZtufkH9H0mlsvbhEGK5CpX0Zlavylg=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 h1:zYyBkD/k9seD2A7fsi6Oo2LfFZAehjjQMERAvZLEDnQ=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646/go.mod h1:jpp1/29i3P1S/RLdc7JQKbRpFeM1dOBd8T9ki5s+AY8=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=

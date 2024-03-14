@@ -84,6 +84,3 @@ helm/dendrite/charts/
 
 # capnproto std libs
 go-capnp
-
-# Generated files
-*.capnp.go

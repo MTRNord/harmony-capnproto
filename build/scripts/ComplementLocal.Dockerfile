@@ -15,14 +15,6 @@ ENV SERVER_NAME=localhost
 ENV COVER=0
 EXPOSE 8008 8448
 
-#
-# Install the capnproto go requirements and codegen the files
-# We use main of it as the latest is broken right now due to go packaging system
-#
-RUN go install capnproto.org/go/capnp/v3/capnpc-go@main
-RUN git clone https://github.com/capnproto/go-capnp /go-capnp
-RUN capnp compile -I/go-capnp/std --verbose -ogo ./**/*.capnp
-
 WORKDIR /runtime
 # This script compiles Dendrite for us.
 RUN echo '\

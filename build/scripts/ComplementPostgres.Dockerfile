@@ -4,14 +4,6 @@ FROM golang:1.20-bullseye as build
 RUN apt-get update && apt-get install -y postgresql capnproto
 WORKDIR /build
 
-#
-# Install the capnproto go requirements and codegen the files
-# We use main of it as the latest is broken right now due to go packaging system
-#
-RUN go install capnproto.org/go/capnp/v3/capnpc-go@main
-RUN git clone https://github.com/capnproto/go-capnp /go-capnp
-RUN capnp compile -I/go-capnp/std --verbose -ogo ./**/*.capnp
-
 # No password when connecting over localhost
 RUN sed -i "s%127.0.0.1/32            md5%127.0.0.1/32            trust%g" /etc/postgresql/13/main/pg_hba.conf && \
     # Bump up max conns for moar concurrency
