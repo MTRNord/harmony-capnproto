@@ -21,6 +21,11 @@ if [ ${1:-""} = "fast" ]
 then args="--fast"
 fi
 
+echo "Generate go capnp code"
+path="./**/*.capnp"
+go_stdlib=$(getRealPath "./go-capnp/std")
+capnp compile -I $go_stdlib --verbose -ogo $path
+
 echo "Installing golangci-lint..."
 
 # Make a backup of go.{mod,sum} first

@@ -4,7 +4,15 @@
 # base installs required dependencies and runs go mod download to cache dependencies
 #
 FROM --platform=${BUILDPLATFORM} docker.io/golang:alpine AS base
-RUN apk --update --no-cache add bash build-base curl git
+RUN apk --update --no-cache add bash build-base curl git capnproto
+
+#
+# Install the capnproto go requirements and codegen the files
+# We use main of it as the latest is broken right now due to go packaging system
+#
+RUN go install capnproto.org/go/capnp/v3/capnpc-go@main
+RUN git clone https://github.com/capnproto/go-capnp /go-capnp
+RUN capnp compile -I/go-capnp/std --verbose -ogo ./**/*.capnp
 
 #
 # build creates all needed binaries

@@ -1,8 +1,16 @@
 #syntax=docker/dockerfile:1.2
 
 FROM golang:1.20-bullseye as build
-RUN apt-get update && apt-get install -y sqlite3
+RUN apt-get update && apt-get install -y sqlite3 capnproto
 WORKDIR /build
+
+#
+# Install the capnproto go requirements and codegen the files
+# We use main of it as the latest is broken right now due to go packaging system
+#
+RUN go install capnproto.org/go/capnp/v3/capnpc-go@main
+RUN git clone https://github.com/capnproto/go-capnp /go-capnp
+RUN capnp compile -I/go-capnp/std --verbose -ogo ./**/*.capnp
 
 # we will dump the binaries and config file to this location to ensure any local untracked files
 # that come from the COPY . . file don't contaminate the build

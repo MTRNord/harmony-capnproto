@@ -70,7 +70,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install libolm
-        run: sudo apt-get install libolm-dev libolm3
+        run: sudo apt-get install libolm-dev libolm3 capnproto
       - name: Setup go
         uses: actions/setup-go@v5
         with:
@@ -89,6 +89,11 @@ jobs:
         with:
           # Optional: pass GITHUB_TOKEN to avoid rate limiting.
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare capnproto files
+        run: |
+          go install capnproto.org/go/capnp/v3/capnpc-go@main
+          git clone https://github.com/capnproto/go-capnp /go-capnp
+          capnp compile -I/go-capnp/std --verbose -ogo ./**/*.capnp
       - run: go test -json -v ./... 2>&1 | gotestfmt -hide all
         env:
           POSTGRES_HOST: localhost
@@ -120,6 +125,12 @@ jobs:
             ${{ runner.os }}-go-upgrade-test-
       - name: Docker version
         run: docker version
+      - name: Prepare capnproto files
+        run: |
+          sudo apt-get install capnproto
+          go install capnproto.org/go/capnp/v3/capnpc-go@main
+          git clone https://github.com/capnproto/go-capnp /go-capnp
+          capnp compile -I/go-capnp/std --verbose -ogo ./**/*.capnp
       - name: Build upgrade-tests
         run: go build ./cmd/dendrite-upgrade-tests
       - name: Test upgrade (PostgreSQL)
@@ -149,6 +160,12 @@ jobs:
             ${{ runner.os }}-go-upgrade-direct-test-
       - name: Docker version
         run: docker version
+      - name: Prepare capnproto files
+        run: |
+          sudo apt-get install capnproto
+          go install capnproto.org/go/capnp/v3/capnpc-go@main
+          git clone https://github.com/capnproto/go-capnp /go-capnp
+          capnp compile -I/go-capnp/std --verbose -ogo ./**/*.capnp
       - name: Build upgrade-tests
         run: go build ./cmd/dendrite-upgrade-tests
       - name: Test upgrade (PostgreSQL)
@@ -188,6 +205,13 @@ jobs:
           key: ${{ runner.os }}-go-sytest-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-sytest-
+      - name: Prepare capnproto files
+        run: |
+          sudo apt-get install capnproto
+          go install capnproto.org/go/capnp/v3/capnpc-go@main
+          git clone https://github.com/capnproto/go-capnp /go-capnp
+          capnp compile -I/go-capnp/std --verbose -ogo ./**/*.capnp
+        working-directory: /src
       - name: Run Sytest
         run: /bootstrap.sh dendrite
         working-directory: /src
