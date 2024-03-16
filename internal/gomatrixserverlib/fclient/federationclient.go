@@ -20,6 +20,8 @@ import (
 type FederationClient interface {
 	gomatrixserverlib.KeyClient
 
+	Close()
+
 	DoRequestAndParseResponse(ctx context.Context, req *http.Request, result interface{}) error
 
 	SendTransaction(ctx context.Context, t gomatrixserverlib.Transaction) (res RespSend, err error)

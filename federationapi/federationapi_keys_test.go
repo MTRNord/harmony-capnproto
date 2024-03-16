@@ -116,6 +116,12 @@ func TestMain(m *testing.M) {
 			s.api = NewInternalAPI(processCtx, cfg, cm, &natsInstance, s.fedclient, nil, s.cache, nil, true)
 		}
 
+		defer func() {
+			for _, s := range servers {
+				s.fedclient.Close()
+			}
+		}()
+
 		// Now that we have built our server key APIs, start the
 		// rest of the tests.
 		return m.Run()

@@ -341,6 +341,7 @@ func TestRoomsV3URLEscapeDoNot404(t *testing.T) {
 		cfg.Global.SigningIdentities(),
 		fclient.WithSkipVerify(true),
 	)
+	defer fedCli.Close()
 
 	for _, tc := range testCases {
 		ev, err := gomatrixserverlib.MustGetRoomVersion(tc.roomVer).NewEventFromTrustedJSON([]byte(tc.eventJSON), false)

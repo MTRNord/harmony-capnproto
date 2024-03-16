@@ -49,7 +49,15 @@ const requestTimeout time.Duration = time.Duration(30) * time.Second
 type Client struct {
 	client          http.Client
 	resolutionCache *sync.Map
+	rpcClientCache  *sync.Map
 	userAgent       string
+}
+
+// This holds all necessary parts of an rpc client
+type RPCHolder struct {
+	client  *rpc.MatrixFederation
+	netConn net.Conn
+	rpcConn *capnp_rpc.Conn
 }
 
 // UserInfo represents information about a user.
@@ -324,10 +332,28 @@ retryResolution:
 	return nil, err
 }
 
+// This ensures all connections are released cleanly
+func (fc *Client) Close() {
+	fc.rpcClientCache.Range(func(key any, value any) bool {
+		rpcHolder := value.(RPCHolder)
+
+		rpcHolder.netConn.Close()
+		rpcHolder.rpcConn.Close()
+		rpcHolder.client.Release()
+		fc.rpcClientCache.Delete(key)
+
+		return true
+	})
+}
+
 func (fc *Client) GetRPCClient(ctx context.Context, serverName spec.ServerName) (*rpc.MatrixFederation, error) {
 	var err error
 	resolutionRetried := false
 	resolutionResults := []ResolutionResult{}
+
+	if cachedClient, ok := fc.rpcClientCache.Load(serverName); ok {
+		return cachedClient.(RPCHolder).client, nil
+	}
 
 retryResolution:
 	if cached, ok := fc.resolutionCache.Load(serverName); ok {
@@ -374,6 +400,12 @@ retryResolution:
 
 	client := rpc.MatrixFederation(rpc_conn.Bootstrap(ctx))
 	defer client.Release()
+
+	fc.rpcClientCache.Store(serverName, RPCHolder{
+		client:  &client,
+		rpcConn: rpc_conn,
+		netConn: conn,
+	})
 
 	return &client, nil
 }

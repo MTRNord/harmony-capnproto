@@ -446,7 +446,9 @@ func TestSetDisplayname(t *testing.T) {
 		rsAPI.SetFederationAPI(nil, nil)
 		userAPI := userapi.NewInternalAPI(processCtx, cfg, cm, natsInstance, rsAPI, nil, caching.DisableMetrics, testIsBlacklistedOrBackingOff)
 
-		AddPublicRoutes(processCtx, routers, cfg, natsInstance, base.CreateFederationClient(cfg, nil), rsAPI, nil, nil, userAPI, nil, nil, caching.DisableMetrics)
+		fedClient := base.CreateFederationClient(cfg, nil)
+		defer fedClient.Close()
+		AddPublicRoutes(processCtx, routers, cfg, natsInstance, fedClient, rsAPI, nil, nil, userAPI, nil, nil, caching.DisableMetrics)
 
 		accessTokens := map[*test.User]userDevice{
 			alice: {},
@@ -557,7 +559,9 @@ func TestSetAvatarURL(t *testing.T) {
 		rsAPI.SetFederationAPI(nil, nil)
 		userAPI := userapi.NewInternalAPI(processCtx, cfg, cm, natsInstance, rsAPI, nil, caching.DisableMetrics, testIsBlacklistedOrBackingOff)
 
-		AddPublicRoutes(processCtx, routers, cfg, natsInstance, base.CreateFederationClient(cfg, nil), rsAPI, nil, nil, userAPI, nil, nil, caching.DisableMetrics)
+		fedClient := base.CreateFederationClient(cfg, nil)
+		defer fedClient.Close()
+		AddPublicRoutes(processCtx, routers, cfg, natsInstance, fedClient, rsAPI, nil, nil, userAPI, nil, nil, caching.DisableMetrics)
 
 		accessTokens := map[*test.User]userDevice{
 			alice: {},

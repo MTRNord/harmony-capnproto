@@ -240,6 +240,7 @@ func TestUpdateNoPrevID(t *testing.T) {
 			`)),
 		}, nil
 	})
+	defer fedClient.Close()
 	updater := NewDeviceListUpdater(process.NewProcessContext(), db, ap, producer, fedClient, 2, nil, "example.test", caching.DisableMetrics, testIsBlacklistedOrBackingOff)
 	if err := updater.Start(); err != nil {
 		t.Fatalf("failed to start updater: %s", err)
@@ -310,6 +311,7 @@ func TestDebounce(t *testing.T) {
 		close(incomingFedReq)
 		return <-fedCh, nil
 	})
+	defer fedClient.Close()
 	updater := NewDeviceListUpdater(process.NewProcessContext(), db, ap, producer, fedClient, 1, nil, "localhost", caching.DisableMetrics, testIsBlacklistedOrBackingOff)
 	if err := updater.Start(); err != nil {
 		t.Fatalf("failed to start updater: %s", err)

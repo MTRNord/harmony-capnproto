@@ -109,6 +109,7 @@ func main() {
 
 	federationClient := basepkg.CreateFederationClient(cfg, dnsCache)
 	httpClient := basepkg.CreateClient(cfg, dnsCache)
+	defer httpClient.Close()
 
 	// prepare required dependencies
 	cm := sqlutil.NewConnectionManager(processCtx, cfg.Global.DatabaseOptions)

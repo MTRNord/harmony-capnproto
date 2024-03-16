@@ -60,6 +60,7 @@ func main() {
 			},
 		},
 	)
+	defer client.Close()
 
 	u, err := url.Parse(flag.Arg(0))
 	if err != nil {
