@@ -27,43 +27,53 @@ func assertCritical(t *testing.T, val, expected interface{}) {
 // and expected certificate name.
 // If one of them doesn't match, or the resolution function returned with an
 // error, it aborts the current test.
-func testResolve(t *testing.T, serverName spec.ServerName, destination, host, certName string) {
-	res, err := ResolveServer(context.Background(), serverName)
+func testResolve(t *testing.T, serverName spec.ServerName, rpcServerName *spec.ServerName, destination, rpcDestination, host, certName string) {
+	res, err := ResolveServer(context.Background(), rpcServerName, serverName)
 	assertCritical(t, err, nil)
 	assertCritical(t, len(res), 1)
 	assertCritical(t, res[0].Destination, destination)
 	assertCritical(t, res[0].Host, spec.ServerName(host))
 	assertCritical(t, res[0].TLSServerName, certName)
+	assertCritical(t, res[0].RPCDestination, rpcDestination)
 }
 
 // Tests step 1 (IPv4 without a port) of the resolution algorithm.
 func TestResolutionIPLiteral(t *testing.T) {
+	serverName := spec.ServerName("42.42.42.42")
 	testResolve(
 		t,
-		spec.ServerName("42.42.42.42"), // The server name is an IP literal without a port
-		"42.42.42.42:8448",             // Destination must be the IP address + port 8448
-		"42.42.42.42",                  // Host must be the IP address
-		"42.42.42.42",                  // Certificate (Name) must be for the IP address
+		serverName,         // The server name is an IP literal without a port
+		&serverName,        // The rpc server name is an IP literal without a port
+		"42.42.42.42:8448", // Destination must be the IP address + port 8448
+		"42.42.42.42:8449", // RPCDestination must be the IP address + port 8449
+		"42.42.42.42",      // Host must be the IP address
+		"42.42.42.42",      // Certificate (Name) must be for the IP address
 	)
 }
 
 // Tests step 1 (IPv6 without a port) of the resolution algorithm.
 func TestResolutionIPv6Literal(t *testing.T) {
+	serverName := spec.ServerName("[42:42::42]")
 	testResolve(
 		t,
-		spec.ServerName("[42:42::42]"), // The server name is an IP literal without a port
-		"[42:42::42]:8448",             // Destination must be the IP address + port 8448
-		"[42:42::42]",                  // Host must be the IP address
-		"42:42::42",                    // Certificate (Name) must be for the IP address
+		serverName,         // The server name is an IP literal without a port
+		&serverName,        // The rpc server name is an IP literal without a port
+		"[42:42::42]:8448", // Destination must be the IP address + port 8448
+		"[42:42::42]:8449", // RPCDestination must be the IP address + port 8449
+		"[42:42::42]",      // Host must be the IP address
+		"42:42::42",        // Certificate (Name) must be for the IP address
 	)
 }
 
 // Tests step 1 (IPv4 with a port) of the resolution algorithm.
 func TestResolutionIPLiteralWithPort(t *testing.T) {
+	rpcServerName := spec.ServerName("42.42.42.42:444")
 	testResolve(
 		t,
 		spec.ServerName("42.42.42.42:443"), // The server name is an IP literal with a port
+		&rpcServerName,                     // The server name is an IP literal with a port
 		"42.42.42.42:443",                  // Destination must be the IP address + port
+		"42.42.42.42:444",                  // RPCDestination must be the IP address + port
 		"42.42.42.42:443",                  // Host must be the IP address + port
 		"42.42.42.42",                      // Certificate (Name) must be for the IP address
 	)
@@ -71,10 +81,13 @@ func TestResolutionIPLiteralWithPort(t *testing.T) {
 
 // Tests step 1 (IPv6 with a port) of the resolution algorithm.
 func TestResolutionIPv6LiteralWithPort(t *testing.T) {
+	rpcServerName := spec.ServerName("[42:42::42]:444")
 	testResolve(
 		t,
 		spec.ServerName("[42:42::42]:443"), // The server name is an IP literal with a port
+		&rpcServerName,                     // The server name is an IP literal with a port
 		"[42:42::42]:443",                  // Destination must be the IP address + port
+		"[42:42::42]:444",                  // RPCDestination must be the IP address + port
 		"[42:42::42]:443",                  // Host must be the IP address + port
 		"42:42::42",                        // Certificate (Name) must be for the IP address
 	)
@@ -82,10 +95,13 @@ func TestResolutionIPv6LiteralWithPort(t *testing.T) {
 
 // Tests step 2 of the resolution algorithm.
 func TestResolutionHostnameAndPort(t *testing.T) {
+	rpcServerName := spec.ServerName("example.com:4243")
 	testResolve(
 		t,
 		spec.ServerName("example.com:4242"), // The server name is not an IP literal and includes an explicit port
+		&rpcServerName,                      // The server name is not an IP literal and includes an explicit port
 		"example.com:4242",                  // Destination must be the hostname + port
+		"example.com:4243",                  // RPCDestination must be the hostname + port
 		"example.com:4242",                  // Host must be the hostname + port
 		"example.com",                       // Certificate (Name) must be for the hostname
 	)
@@ -98,12 +114,14 @@ func TestResolutionHostnameWellKnownWithIPLiteral(t *testing.T) {
 	gock.New("https://example.com").
 		Get("/.well-known/matrix/server").
 		Reply(200).
-		BodyString("{\"m.server\": \"42.42.42.42\"}")
+		BodyString("{\"m.server\": \"42.42.42.42\", \"m.rpc_server\": \"43.43.43.43\"}")
 
 	testResolve(
 		t,
 		spec.ServerName("example.com"), // The server name is a domain hosting a .well-known file which specifies an IP literal without a port
+		nil,                            // We dont know the rpc address yet
 		"42.42.42.42:8448",             // Destination must be the IP literal + port 8448
+		"43.43.43.43:8449",             // RPCDestination must be the IP literal + port 8449
 		"42.42.42.42",                  // Host must be the IP literal
 		"42.42.42.42",                  // Certificate (Name) must be for the IP literal
 	)
@@ -116,12 +134,14 @@ func TestResolutionHostnameWellKnownWithIPLiteralAndPort(t *testing.T) {
 	gock.New("https://example.com").
 		Get("/.well-known/matrix/server").
 		Reply(200).
-		BodyString("{\"m.server\": \"42.42.42.42:443\"}")
+		BodyString("{\"m.server\": \"42.42.42.42:443\", \"m.rpc_server\": \"43.43.43.43:444\"}")
 
 	testResolve(
 		t,
 		spec.ServerName("example.com"), // The server name is a domain hosting a .well-known file which specifies an IP literal with a port
+		nil,                            // We dont know the rpc address yet
 		"42.42.42.42:443",              // Destination must be the IP literal + port
+		"43.43.43.43:444",              // RPCDestination must be the IP literal + port
 		"42.42.42.42:443",              // Host must be the IP literal + port
 		"42.42.42.42",                  // Certificate (Name) must be for the IP literal
 	)
@@ -134,12 +154,14 @@ func TestResolutionHostnameWellKnownWithHostnameAndPort(t *testing.T) {
 	gock.New("https://example.com").
 		Get("/.well-known/matrix/server").
 		Reply(200).
-		BodyString("{\"m.server\": \"matrix.example.com:4242\"}")
+		BodyString("{\"m.server\": \"matrix.example.com:4242\", \"m.rpc_server\": \"rpc.matrix.example.com:4243\"}")
 
 	testResolve(
 		t,
 		spec.ServerName("example.com"), // The server name is a domain hosting a .well-known file which specifies a hostname that's not an IP literal and has a port
+		nil,                            // We dont know the rpc address yet
 		"matrix.example.com:4242",      // Destination must be the hostname + port
+		"rpc.matrix.example.com:4243",  // RPCDestination must be the hostname + port
 		"matrix.example.com:4242",      // Host must be the hostname + port
 		"matrix.example.com",           // Certificate (Name) must be for the hostname
 	)
@@ -152,7 +174,7 @@ func TestResolutionHostnameWellKnownWithHostnameSRV(t *testing.T) {
 	gock.New("https://example.com").
 		Get("/.well-known/matrix/server").
 		Reply(200).
-		BodyString("{\"m.server\": \"matrix.example.com\"}")
+		BodyString("{\"m.server\": \"matrix.example.com\", \"m.rpc_server\": \"rpc.matrix.example.com\"}")
 
 	cleanup := setupFakeDNS(true)
 	defer cleanup()
@@ -160,7 +182,9 @@ func TestResolutionHostnameWellKnownWithHostnameSRV(t *testing.T) {
 	testResolve(
 		t,
 		spec.ServerName("example.com"), // The server name is a domain hosting a .well-known file which specifies a hostname that's not an IP literal, has no port and for which a SRV record with a non-0 exists
+		nil,                            // We dont know the rpc address yet
 		"matrix.otherexample.com:4242", // Destination must be the hostname + port from the SRV record
+		"rpc.matrix.example.com:8449",  // RPCDestination must be the hostname + port 8449
 		"matrix.example.com",           // Host must be the delegated hostname
 		"matrix.example.com",           // Certificate (Name) must be for the delegated hostname
 	)
@@ -173,7 +197,7 @@ func TestResolutionHostnameWellKnownWithHostnameNoSRV(t *testing.T) {
 	gock.New("https://example.com").
 		Get("/.well-known/matrix/server").
 		Reply(200).
-		BodyString("{\"m.server\": \"matrix.example.com\"}")
+		BodyString("{\"m.server\": \"matrix.example.com\", \"m.rpc_server\": \"rpc.matrix.example.com\"}")
 
 	cleanup := setupFakeDNS(false)
 	defer cleanup()
@@ -181,7 +205,9 @@ func TestResolutionHostnameWellKnownWithHostnameNoSRV(t *testing.T) {
 	testResolve(
 		t,
 		spec.ServerName("example.com"), // The server name is a domain hosting a .well-known file which specifies a hostname that's not an IP literal, has no port and for which no SRV record exists
+		nil,                            // We dont know the rpc address yet
 		"matrix.example.com:8448",      // Destination must be the delegated hostname + port 8448
+		"rpc.matrix.example.com:8449",  // RPCDestination must be the hostname + port 8449
 		"matrix.example.com",           // Host must be the delegated hostname
 		"matrix.example.com",           // Certificate (Name) must be for the delegated hostname
 	)
@@ -195,7 +221,9 @@ func TestResolutionHostnameWithSRV(t *testing.T) {
 	testResolve(
 		t,
 		spec.ServerName("example.com"), // The server name is a domain for which a SRV record exists with a non-0 port
+		nil,                            // We dont know the rpc address yet
 		"matrix.otherexample.com:4242", // Destination must be the hostname + port
+		"matrix.otherexample.com:8449", // RPCDestination must be the hostname + port 8449
 		"example.com",                  // Host must be the server name
 		"example.com",                  // Certificate (Name) must be for the server name
 	)
@@ -215,7 +243,9 @@ func TestResolutionHostnameWithNoWellKnownNorSRV(t *testing.T) {
 	testResolve(
 		t,
 		spec.ServerName("example.com"), // The server name is a domain for no .well-known file nor SRV record exist
+		nil,                            // We dont know the rpc address yet
 		"example.com:8448",             // Destination must be the hostname + 8448
+		"example.com:8449",             // Destination must be the hostname + 8449
 		"example.com",                  // Host must be the server name
 		"example.com",                  // Certificate (Name) must be for the server name
 	)

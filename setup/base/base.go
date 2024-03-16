@@ -28,6 +28,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -59,6 +60,7 @@ const HTTPServerTimeout = time.Minute * 5
 func CreateClient(cfg *config.Dendrite, dnsCache *fclient.DNSCache) *fclient.Client {
 	if cfg.Global.DisableFederation {
 		return fclient.NewClient(
+			&sync.Map{},
 			fclient.WithTransport(noOpHTTPTransport),
 		)
 	}
@@ -69,7 +71,7 @@ func CreateClient(cfg *config.Dendrite, dnsCache *fclient.DNSCache) *fclient.Cli
 	if cfg.Global.DNSCache.Enabled && dnsCache != nil {
 		opts = append(opts, fclient.WithDNSCache(dnsCache))
 	}
-	client := fclient.NewClient(opts...)
+	client := fclient.NewClient(&sync.Map{}, opts...)
 	client.SetUserAgent(fmt.Sprintf("Harmony/%s", internal.VersionString()))
 	return client
 }

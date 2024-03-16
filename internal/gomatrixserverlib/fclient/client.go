@@ -35,6 +35,9 @@ import (
 	"github.com/neilalexander/harmony/internal/gomatrixserverlib"
 	"github.com/neilalexander/harmony/internal/gomatrixserverlib/spec"
 	"github.com/sirupsen/logrus"
+
+	capnp_rpc "capnproto.org/go/capnp/v3/rpc"
+	rpc "github.com/neilalexander/harmony/internal/gomatrixserverlib/capnproto/federation/v1"
 )
 
 // Default HTTPS request timeout
@@ -44,8 +47,9 @@ const requestTimeout time.Duration = time.Duration(30) * time.Second
 // centralise a number of configurable options, such as DNS caching,
 // timeouts etc.
 type Client struct {
-	client    http.Client
-	userAgent string
+	client          http.Client
+	resolutionCache *sync.Map
+	userAgent       string
 }
 
 // UserInfo represents information about a user.
@@ -69,7 +73,7 @@ type ClientOption func(*clientOptions)
 // NewClient makes a new Client. You can supply zero or more ClientOptions
 // which control the transport, timeout, TLS validation etc - see
 // WithTransport, WithTimeout, WithSkipVerify, WithDNSCache etc.
-func NewClient(options ...ClientOption) *Client {
+func NewClient(resolutionCache *sync.Map, options ...ClientOption) *Client {
 	clientOpts := &clientOptions{
 		timeout: requestTimeout,
 	}
@@ -80,6 +84,7 @@ func NewClient(options ...ClientOption) *Client {
 		clientOpts.transport = newDestinationTripper(
 			clientOpts.skipVerify,
 			clientOpts.dnsCache,
+			resolutionCache,
 			clientOpts.keepAlives,
 			clientOpts.wellKnownSRV,
 		)
@@ -89,7 +94,8 @@ func NewClient(options ...ClientOption) *Client {
 			Transport: clientOpts.transport,
 			Timeout:   clientOpts.timeout,
 		},
-		userAgent: clientOpts.userAgent,
+		resolutionCache: resolutionCache,
+		userAgent:       clientOpts.userAgent,
 	}
 	return client
 }
@@ -161,19 +167,20 @@ type destinationTripper struct {
 	transports      map[string]*destinationTripperTransport
 	transportsMutex sync.Mutex
 	skipVerify      bool
-	resolutionCache sync.Map // serverName -> []ResolutionResult
+	resolutionCache *sync.Map // serverName -> []ResolutionResult
 	dnsCache        *DNSCache
 	keepAlives      bool
 	wellKnownSRV    bool
 }
 
-func newDestinationTripper(skipVerify bool, dnsCache *DNSCache, keepAlives, wellKnownSRV bool) *destinationTripper {
+func newDestinationTripper(skipVerify bool, dnsCache *DNSCache, resolutionCache *sync.Map, keepAlives, wellKnownSRV bool) *destinationTripper {
 	tripper := &destinationTripper{
-		transports:   make(map[string]*destinationTripperTransport),
-		skipVerify:   skipVerify,
-		dnsCache:     dnsCache,
-		keepAlives:   keepAlives,
-		wellKnownSRV: wellKnownSRV,
+		transports:      make(map[string]*destinationTripperTransport),
+		skipVerify:      skipVerify,
+		dnsCache:        dnsCache,
+		keepAlives:      keepAlives,
+		wellKnownSRV:    wellKnownSRV,
+		resolutionCache: resolutionCache,
 	}
 	time.AfterFunc(destinationTripperReapInterval, tripper.reaper)
 	return tripper
@@ -270,7 +277,7 @@ retryResolution:
 		// If the cache returned nothing then we'll have no results here,
 		// so go and hit the network.
 		if len(resolutionResults) == 0 {
-			resolutionResults, err = ResolveServer(r.Context(), serverName)
+			resolutionResults, err = ResolveServer(r.Context(), nil, serverName)
 			if err != nil {
 				return nil, err
 			}
@@ -315,6 +322,60 @@ retryResolution:
 
 	// just return the most recent error
 	return nil, err
+}
+
+func (fc *Client) GetRPCClient(ctx context.Context, serverName spec.ServerName) (*rpc.MatrixFederation, error) {
+	var err error
+	resolutionRetried := false
+	resolutionResults := []ResolutionResult{}
+
+retryResolution:
+	if cached, ok := fc.resolutionCache.Load(serverName); ok {
+		if results, ok := cached.([]ResolutionResult); ok {
+			resolutionResults = results
+		}
+	}
+
+	// If the cache returned nothing then we'll have no results here,
+	// so go and hit the network.
+	if len(resolutionResults) == 0 {
+		resolutionResults, err = ResolveServer(ctx, &serverName, serverName)
+		if err != nil {
+			return nil, err
+		}
+		fc.resolutionCache.Store(serverName, resolutionResults)
+	}
+
+	// If we still have no results at this point, even after possibly
+	// hitting the network, then give up.
+	if len(resolutionResults) == 0 {
+		return nil, fmt.Errorf("no address found for matrix host %v", serverName)
+	}
+
+	// Due to how rpc works we only care about the first result of the resolutionCache
+	rpcAddress := resolutionResults[0].RPCDestination
+	conn, err := net.Dial("tcp", rpcAddress)
+	if err != nil {
+		// We failed to reach any of the locations in the resolution results,
+		// so clear the cache and mark that we're retrying, then give it a
+		// try again.
+		fc.resolutionCache.Delete(serverName)
+		if !resolutionRetried {
+			resolutionRetried = true
+			goto retryResolution
+		}
+
+		return nil, err
+	}
+	defer conn.Close()
+
+	rpc_conn := capnp_rpc.NewConn(capnp_rpc.NewPackedStreamTransport(conn), nil)
+	defer rpc_conn.Close()
+
+	client := rpc.MatrixFederation(rpc_conn.Bootstrap(ctx))
+	defer client.Release()
+
+	return &client, nil
 }
 
 // SetUserAgent sets the user agent string that is sent in the headers of

@@ -1,6 +1,7 @@
 module github.com/neilalexander/harmony
 
 require (
+	capnproto.org/go/capnp/v3 v3.0.0-alpha.30.0.20240213214103-0d218d2660ff
 	github.com/Arceliar/phony v0.0.0-20220903101357-530938a4b13d
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/MFAshby/stdemuxerhook v1.0.0
@@ -40,7 +41,6 @@ require (
 )
 
 require (
-	capnproto.org/go/capnp/v3 v3.0.0-alpha.30.0.20240213214103-0d218d2660ff // indirect
 	github.com/RoaringBitmap/roaring v1.2.3 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect

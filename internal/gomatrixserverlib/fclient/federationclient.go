@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/matrix-org/gomatrix"
 	"github.com/neilalexander/harmony/internal/gomatrixserverlib"
@@ -92,6 +93,7 @@ func NewFederationClient(
 ) FederationClient {
 	return &federationClient{
 		Client: *NewClient(
+			&sync.Map{},
 			append(options, WithWellKnownSRVLookups(true))...,
 		),
 		identities: append([]*SigningIdentity{}, identities...),

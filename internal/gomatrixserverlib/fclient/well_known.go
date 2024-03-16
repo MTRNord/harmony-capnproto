@@ -23,7 +23,8 @@ const WellKnownMaxSize = 50 * 1024 // 50KB
 // WellKnownResult is the result of looking up a matrix server's well-known file.
 // Located at https://<server_name>/.well-known/matrix/server
 type WellKnownResult struct {
-	NewAddress     spec.ServerName `json:"m.server"`
+	NewAddress     spec.ServerName  `json:"m.server"`
+	RpcAddress     *spec.ServerName `json:"m.rpc_server,omitempty"`
 	CacheExpiresAt int64
 }
 

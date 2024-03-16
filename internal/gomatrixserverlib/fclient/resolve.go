@@ -27,9 +27,10 @@ import (
 // ResolutionResult is a result of looking up a Matrix homeserver according to
 // the federation specification.
 type ResolutionResult struct {
-	Destination   string          // The hostname and port to send federation requests to.
-	Host          spec.ServerName // The value of the Host headers.
-	TLSServerName string          // The TLS server name to request a certificate for.
+	Destination    string          // The hostname and port to send federation requests to.
+	Host           spec.ServerName // The value of the Host headers.
+	TLSServerName  string          // The TLS server name to request a certificate for.
+	RPCDestination string          // The hostname and port to send rpc federation requests to.
 }
 
 // ResolveServer implements the server name resolution algorithm described at
@@ -37,18 +38,28 @@ type ResolutionResult struct {
 // Returns a slice of ResolutionResult that can be used to send a federation
 // request to the server using a given server name.
 // Returns an error if the server name isn't valid.
-func ResolveServer(ctx context.Context, serverName spec.ServerName) (results []ResolutionResult, err error) {
-	return resolveServer(ctx, serverName, true)
+func ResolveServer(ctx context.Context, rpcServerName *spec.ServerName, serverName spec.ServerName) (results []ResolutionResult, err error) {
+	return resolveServer(ctx, serverName, rpcServerName, true)
 }
 
 // resolveServer does the same thing as ResolveServer, except it also requires
 // the checkWellKnown parameter, which indicates whether a .well-known file
 // should be looked up.
-func resolveServer(ctx context.Context, serverName spec.ServerName, checkWellKnown bool) (results []ResolutionResult, err error) {
+func resolveServer(ctx context.Context, serverName spec.ServerName, rpcServerName *spec.ServerName, checkWellKnown bool) (results []ResolutionResult, err error) {
 	host, port, valid := spec.ParseAndValidateServerName(serverName)
 	if !valid {
 		err = fmt.Errorf("Invalid server name")
 		return
+	}
+
+	var rpcPort = -1
+	var rpcHost = ""
+	if rpcServerName != nil {
+		rpcHost, rpcPort, valid = spec.ParseAndValidateServerName(*rpcServerName)
+		if !valid {
+			err = fmt.Errorf("Invalid rpc server name")
+			return
+		}
 	}
 
 	// 1. If the hostname is an IP literal
@@ -74,10 +85,32 @@ func resolveServer(ctx context.Context, serverName spec.ServerName, checkWellKno
 			},
 		}
 
-		return
+		if rpcServerName == nil {
+			return
+		}
 	}
 
-	// 2. If the hostname is not an IP literal, and the server name includes an
+	// 2. Repeat step 1 for rpc
+	if rpcServerName != nil {
+		if rpcHost[0] == '[' && rpcHost[len(rpcHost)-1] == ']' {
+			rpcHost = rpcHost[1 : len(rpcHost)-1]
+		}
+		if net.ParseIP(rpcHost) != nil {
+			var rpcDestination string
+
+			if rpcPort == -1 {
+				rpcDestination = net.JoinHostPort(rpcHost, strconv.Itoa(8449))
+			} else {
+				rpcDestination = string(*rpcServerName)
+			}
+
+			results[0].RPCDestination = rpcDestination
+
+			return
+		}
+	}
+
+	// 3. If the hostname is not an IP literal, and the server name includes an
 	// explicit port
 	if port != -1 {
 		results = []ResolutionResult{
@@ -88,26 +121,36 @@ func resolveServer(ctx context.Context, serverName spec.ServerName, checkWellKno
 			},
 		}
 
+		if rpcServerName == nil {
+			return
+		}
+	}
+
+	// 4. Repeat step 4 for the rpc port
+	if rpcPort != -1 {
+		results[0].RPCDestination = string(*rpcServerName)
+
 		return
 	}
 
 	if checkWellKnown {
-		// 3. If the hostname is not an IP literal
+		// 5. If the hostname is not an IP literal
 		var result *WellKnownResult
 		result, err = LookupWellKnown(ctx, serverName)
 		if err == nil {
 			// We don't want to check .well-known on the result
-			return resolveServer(ctx, result.NewAddress, false)
+			return resolveServer(ctx, result.NewAddress, result.RpcAddress, false)
 		}
 	}
 
-	return handleNoWellKnown(ctx, serverName), nil
+	return handleNoWellKnown(ctx, serverName, rpcServerName), nil
 }
 
 // handleNoWellKnown implements steps 4 and 5 of the resolution algorithm (as
 // well as 3.3 and 3.4)
-func handleNoWellKnown(ctx context.Context, serverName spec.ServerName) (results []ResolutionResult) {
+func handleNoWellKnown(ctx context.Context, serverName spec.ServerName, rpcServerName *spec.ServerName) (results []ResolutionResult) {
 	// 4. If the /.well-known request resulted in an error response
+	// 4a. Srv name support intentionally not added for rpc
 	records, err := lookupSRV(ctx, serverName)
 	if err == nil && len(records) > 0 {
 		for _, rec := range records {
@@ -120,10 +163,18 @@ func handleNoWellKnown(ctx context.Context, serverName spec.ServerName) (results
 				target = target[:len(target)-1]
 			}
 
+			var RPCDestination string
+			if rpcServerName == nil {
+				RPCDestination = fmt.Sprintf("%s:%d", target, 8449)
+			} else {
+				RPCDestination = fmt.Sprintf("%s:%d", *rpcServerName, 8449)
+			}
+
 			results = append(results, ResolutionResult{
-				Destination:   fmt.Sprintf("%s:%d", target, rec.Port),
-				Host:          serverName,
-				TLSServerName: string(serverName),
+				Destination:    fmt.Sprintf("%s:%d", target, rec.Port),
+				Host:           serverName,
+				TLSServerName:  string(serverName),
+				RPCDestination: RPCDestination,
 			})
 		}
 
@@ -132,11 +183,19 @@ func handleNoWellKnown(ctx context.Context, serverName spec.ServerName) (results
 
 	// 5. If the /.well-known request returned an error response, and the SRV
 	// record was not found
+	var RPCDestination string
+	if rpcServerName == nil {
+		RPCDestination = fmt.Sprintf("%s:%d", serverName, 8449)
+	} else {
+		RPCDestination = fmt.Sprintf("%s:%d", *rpcServerName, 8449)
+	}
+
 	results = []ResolutionResult{
 		{
-			Destination:   fmt.Sprintf("%s:%d", serverName, 8448),
-			Host:          serverName,
-			TLSServerName: string(serverName),
+			Destination:    fmt.Sprintf("%s:%d", serverName, 8448),
+			Host:           serverName,
+			TLSServerName:  string(serverName),
+			RPCDestination: RPCDestination,
 		},
 	}
 
