@@ -337,9 +337,9 @@ func (fc *Client) Close() {
 	fc.rpcClientCache.Range(func(key any, value any) bool {
 		rpcHolder := value.(RPCHolder)
 
-		rpcHolder.netConn.Close()
-		rpcHolder.rpcConn.Close()
 		rpcHolder.client.Release()
+		rpcHolder.rpcConn.Close()
+		rpcHolder.netConn.Close()
 		fc.rpcClientCache.Delete(key)
 
 		return true
